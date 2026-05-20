@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mithi [ALPHA]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+<style>
+body {
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  overflow: hidden;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Favicon toggle */
+#themeFavicon {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  z-index: 1000;
+}
+
+/* Main menu */
+#menu {
+  position: absolute;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  transition: transform 0.8s ease-in-out;
+}
+#menu h1 { margin: 0; font-size: 3rem; }
+#menu p { margin: 10px 0 30px 0; font-size: 1.2rem; }
+#menu button { font-family: "Poppins", sans-serif; font-size: 1rem; padding: 10px 20px; cursor: pointer; }
+
+/* Workspace */
+#workspace {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  transition: transform 0.8s ease-in-out;
+  background-color: #f0f0f0;
+}
+
+/* Side menu */
+#sideMenu {
+  width: 250px;
+  background-color: #ddd;
+  padding: 10px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.3s;
+}
+#sideMenu input, #sideMenu label, #sideMenu button { font-family: "Poppins", sans-serif; }
+#objectSearch { padding: 5px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #aaa; }
+#objectList { flex: 1; overflow-y: auto; margin-bottom: 10px; }
+.objectCard {
+  padding: 5px; margin-bottom: 5px; cursor: pointer;
+  background-color: #eee; border-radius: 4px; text-align: center;
+  font-size: 1.2rem; transition: background-color 0.2s;
+}
+.objectCard:hover { background-color: #ccc; }
+
+/* Grid container */
+#gridContainer {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-image:
+    linear-gradient(to right, #ccc 1px, transparent 1px),
+    linear-gradient(to bottom, #ccc 1px, transparent 1px);
+  background-size: 50px 50px;
+  transition: background-color 0.3s, background-image 0.3s;
+}
+
+/* Grid objects */
+.gridObject {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  background-color: white;
+  cursor: move;
+  user-select: none;
+  transition: background-color 0.3s, border-color 0.3s;
+}
+
+/* Measurement label above object */
+.gridObject .measure {
+  position: absolute;
+  top: -1.2em;
+  font-size: 0.8rem;
+  background-color: rgba(255,255,255,0.7);
+  padding: 1px 3px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+/* Dark theme */
+body.dark {
+  background-color: black;
+  color: white;
+}
+body.dark #workspace { background-color: #222; }
+body.dark #sideMenu { background-color: #333; color: white; }
+body.dark .objectCard { background-color: #555; color: white; }
+body.dark .objectCard:hover { background-color: #777; }
+body.dark .gridObject { background-color: #444; border-color: #888; }
+body.dark #gridContainer { background-color: #222; background-image:
+  linear-gradient(to right, #666 1px, transparent 1px),
+  linear-gradient(to bottom, #666 1px, transparent 1px);
+}
+</style>
+</head>
+<body>
+
+<img src="assets/aem.png" alt="Theme Toggle" id="themeFavicon">
+
+<div id="menu">
+  <h1>Mithi</h1>
+  <p>Imagine, create, assign.</p>
+  <button id="createProject">Create project</button>
+</div>
+
+<div id="workspace">
+  <div id="sideMenu">
+    <input type="text" placeholder="Search objects..." id="objectSearch">
+    <div id="objectList">
+      <div class="objectCard" data-emoji="🟦">Blue Square</div>
+      <div class="objectCard" data-emoji="🟥">Red Square</div>
+      <div class="objectCard" data-emoji="🟩">Green Square</div>
+      <div class="objectCard" data-emoji="⚙️">Gear</div>
+      <div class="objectCard" data-emoji="🏗️">Construction</div>
+      <div class="objectCard" data-emoji="⭐">Star</div>
+      <div class="objectCard" data-emoji="🛋️">Sofa</div>
+      <div class="objectCard" data-emoji="🪑">Chair</div>
+      <div class="objectCard" data-emoji="🛏️">Bed</div>
+      <div class="objectCard" data-emoji="🖼️">Picture</div>
+    </div>
+    <label>Width (inches): <input type="number" id="objWidth" min="1" value="2"></label>
+    <label>Height (inches): <input type="number" id="objHeight" min="1" value="2"></label>
+    <button id="deleteObject">Delete Selected</button>
+  </div>
+  <div id="gridContainer"></div>
+</div>
+
+<script>
+const createBtn = document.getElementById('createProject');
+const menu = document.getElementById('menu');
+const workspace = document.getElementById('workspace');
+createBtn.addEventListener('click', () => {
+  menu.style.transform = 'translateX(-100%)';
+  workspace.style.transform = 'translateX(-100%)';
+});
+
+// Theme toggle
+const themeFavicon = document.getElementById('themeFavicon');
+let isDark = false;
+themeFavicon.addEventListener('click', () => {
+  isDark = !isDark;
+  document.body.classList.toggle('dark', isDark);
+  themeFavicon.src = isDark ? 'assets/aef.png' : 'assets/aem.png';
+});
+
+// Object logic
+const objectList = document.getElementById('objectList');
+const grid = document.getElementById('gridContainer');
+const searchInput = document.getElementById('objectSearch');
+const widthInput = document.getElementById('objWidth');
+const heightInput = document.getElementById('objHeight');
+const deleteBtn = document.getElementById('deleteObject');
+let selectedObject = null;
+
+// Inches to px (assuming 96px per inch)
+function inchesToPx(inches){ return inches * 96; }
+
+// Select object
+function selectObject(obj){
+  if(selectedObject) selectedObject.style.outline = 'none';
+  selectedObject = obj;
+  obj.style.outline = '2px dashed red';
+  widthInput.value = (parseInt(obj.style.width)/96).toFixed(2);
+  heightInput.value = (parseInt(obj.style.height)/96).toFixed(2);
+}
+
+// Filter object list
+searchInput.addEventListener('input', () => {
+  const term = searchInput.value.toLowerCase();
+  Array.from(objectList.children).forEach(card => {
+    card.style.display = card.textContent.toLowerCase().includes(term) ? 'block' : 'none';
+  });
+});
+
+// Add object
+objectList.addEventListener('click', e => {
+  if(!e.target.classList.contains('objectCard')) return;
+  const emoji = e.target.dataset.emoji;
+  const obj = document.createElement('div');
+  obj.className = 'gridObject';
+  obj.style.width = inchesToPx(widthInput.value) + 'px';
+  obj.style.height = inchesToPx(heightInput.value) + 'px';
+  obj.style.left = '50px';
+  obj.style.top = '50px';
+
+  // Measurement label
+  const measure = document.createElement('div');
+  measure.className = 'measure';
+  measure.textContent = `${widthInput.value}" × ${heightInput.value}"`;
+  obj.appendChild(measure);
+
+  // Emoji
+  const emojiDiv = document.createElement('div');
+  emojiDiv.textContent = emoji;
+  obj.appendChild(emojiDiv);
+
+  grid.appendChild(obj);
+  selectObject(obj);
+});
+
+// Update measurements
+widthInput.addEventListener('input', () => {
+  if(selectedObject){
+    selectedObject.style.width = inchesToPx(widthInput.value)+'px';
+    selectedObject.querySelector('.measure').textContent = `${widthInput.value}" × ${heightInput.value}"`;
+  }
+});
+heightInput.addEventListener('input', () => {
+  if(selectedObject){
+    selectedObject.style.height = inchesToPx(heightInput.value)+'px';
+    selectedObject.querySelector('.measure').textContent = `${widthInput.value}" × ${heightInput.value}"`;
+  }
+});
+
+// Delete selected
+deleteBtn.addEventListener('click', () => {
+  if(selectedObject){ selectedObject.remove(); selectedObject=null; }
+});
+
+// Drag logic
+let dragOffsetX=0, dragOffsetY=0, dragging=null;
+grid.addEventListener('mousedown', e => {
+  let target = e.target.closest('.gridObject');
+  if(!target) return;
+  dragging = target;
+  selectObject(dragging);
+  dragOffsetX = e.offsetX;
+  dragOffsetY = e.offsetY;
+});
+grid.addEventListener('mousemove', e => {
+  if(!dragging) return;
+  dragging.style.left = (e.pageX - grid.offsetLeft - dragOffsetX) + 'px';
+  dragging.style.top = (e.pageY - grid.offsetTop - dragOffsetY) + 'px';
+});
+grid.addEventListener('mouseup', ()=>{ dragging=null; });
+grid.addEventListener('mouseleave', ()=>{ dragging=null; });
+
+</script>
+</body>
+</html>
